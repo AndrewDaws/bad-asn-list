@@ -3,5 +3,3 @@ rules:
   - base: master
     upstream: blaaat:master
     mergeMethod: merge
-    mergeUnstable: true
-label: ":arrow_heading_down: pull"
