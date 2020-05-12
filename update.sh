@@ -37,8 +37,23 @@ clean_file() {
 
 # Download GeoIP ASN lists
 download_geoip_lists() {
-  # Find current MaxMind license key
-  if [[ -z "${MAXMIND_LICENSE_KEY}" ]]; then
+  local maxmind_license_key=""
+  local maxmind_file_name="maxmind.ini"
+
+  # Find current MaxMind license key from config file
+  if [[ -f "${PWD}/${maxmind_file_name}" ]]; then
+    # Found MaxMind config file
+    source "${PWD}/${maxmind_file_name}"
+  fi
+
+  # Find current MaxMind license key from environment
+  if [[ -n "${MAXMIND_LICENSE_KEY}" ]]; then
+    # Found MaxMind variable from config file, or in environment
+    maxmind_license_key="${MAXMIND_LICENSE_KEY}"
+  fi
+
+  # Check if MaxMind license variable is set
+  if [[ -z "${maxmind_license_key}" ]]; then
     # Error finding MaxMind license key
     echo "Aborting ${script_name}"
     echo "  Failed to find MaxMind license key!"
@@ -49,7 +64,7 @@ download_geoip_lists() {
   rm -f "${*}"
   if ! curl \
     --silent \
-    "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-ASN-CSV&license_key=${MAXMIND_LICENSE_KEY}&suffix=zip" \
+    "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-ASN-CSV&license_key=${maxmind_license_key}&suffix=zip" \
     --output "${*}"; then
     # Error downloading GeoIP ASN lists
     rm -f "${*}"
