@@ -1,0 +1,9 @@
+# sensitive files
+maxmind.ini
+
+# temporary files
+bad-asn-list.csv-formatted
+bad-asn-list.csv-cleaned
+bad-asn-list.csv-updated
+GeoLite2-ASN-CSV.zip
+GeoLite2-ASN-CSV/
