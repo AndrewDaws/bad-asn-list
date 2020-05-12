@@ -18,7 +18,7 @@ abort_script() {
 # Format columns and remove unwanted characters
 format_file() {
   # Format each individual line
-  rm -f "${1}-formatted"
+  rm -f "${*}-formatted"
   while read currentLine; do
     currentASN="$(echo "${currentLine}" | grep -o -P '^[^,]+' | grep -o -P '[0-9]+')"
 
@@ -29,24 +29,26 @@ format_file() {
         | grep -o -P '^\"?[0-9]+\"?,\s*\K.*$' \
         | sed 's/^"\([^"]\)/\1/' \
         | sed 's/["/]\+[^"/]*$//')"
-      echo "${currentASN},\"${currentEntity}\"" >> "${1}-formatted"
+      echo "${currentASN},\"${currentEntity}\"" >> "${*}-formatted"
     fi
-  done < "${1}"
-  rm -f "${1}"
-  (echo "ASN,Entity"; cat "${1}-formatted") > "${1}"
-  rm -f "${1}-formatted"
+  done < "${*}"
+  rm -f "${*}"
+  (echo "ASN,Entity"; cat "${*}-formatted") > "${*}"
+  rm -f "${*}-formatted"
 }
 
 # Fix invalid lines, sort, and remove duplicates
 clean_file() {
-  rm -f "${1}-cleaned"
-  grep -o -P '^\"?[0-9]+\"?,\"?.+\"?$' "${1}" \
+  format_file "${*}"
+
+  rm -f "${*}-cleaned"
+  grep -o -P '^\"?[0-9]+\"?,\"?.+\"?$' "${*}" \
     | sort -n -t ',' -k 1,2 \
     | sort -n -u -t ',' -k 1,1 \
-    > "${1}-cleaned"
-  rm -f "${1}"
-  (echo "ASN,Entity"; cat "${1}-cleaned") > "${1}"
-  rm -f "${1}-cleaned"
+    > "${*}-cleaned"
+  rm -f "${*}"
+  (echo "ASN,Entity"; cat "${*}-cleaned") > "${*}"
+  rm -f "${*}-cleaned"
 }
 
 check_connectivity() {
@@ -247,11 +249,10 @@ main() {
     abort_script "Input file argument is empty or does not exist!"
   fi
 
-  format_file "${input_file}"
   clean_file "${input_file}"
   update_file "${input_file}"
 }
 
-main "${@}"
+main "${*}"
 
 exit 0
