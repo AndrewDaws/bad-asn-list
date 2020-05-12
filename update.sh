@@ -1,5 +1,19 @@
 #!/bin/bash
-script_name="$(basename "${0}")"
+
+abort_script() {
+  # Declare local variables
+  local script_name
+
+  # Set local variables
+  script_name="$(basename "${0}")"
+
+  echo "Aborting ${script_name}"
+  for error_msg in "${@}"
+  do
+      echo "  ${error_msg}"
+  done
+  exit 1
+}
 
 # Format columns and remove unwanted characters
 format_file() {
@@ -35,10 +49,36 @@ clean_file() {
   rm -f "${1}-cleaned"
 }
 
+check_connectivity() {
+  # Declare local variables
+  local test_ip
+  local test_count
+
+  # Set local variables
+  test_count="1"
+  if [[ -n "${1}" ]]; then
+    test_ip="${1}"
+  else
+    test_ip="8.8.8.8"
+  fi
+
+  # Test connectivity
+  if ping -c "${test_count}" "${test_ip}" &> /dev/null; then
+    return 0
+  else
+    return 1
+  fi
+ }
+
 # Download GeoIP ASN lists
 download_geoip_lists() {
-  local maxmind_license_key=""
-  local maxmind_file_name="maxmind.ini"
+  # Declare local variables
+  local maxmind_license_key
+  local maxmind_file_name
+
+  # Set local variables
+  maxmind_license_key=""
+  maxmind_file_name="maxmind.ini"
 
   # Find current MaxMind license key from config file
   if [[ -f "${PWD}/${maxmind_file_name}" ]]; then
@@ -55,37 +95,75 @@ download_geoip_lists() {
   # Check if MaxMind license variable is set
   if [[ -z "${maxmind_license_key}" ]]; then
     # Error finding MaxMind license key
-    echo "Aborting ${script_name}"
-    echo "  Failed to find MaxMind license key!"
-    exit 1
+    abort_script "MaxMind ASN lists preprocess error" "Failed to find license key!"
   fi
 
-  # Download current GeoIP ASN lists
+  # Check internet connectivity
+  if ! check_connectivity; then
+    # Error checking internet connectivity
+    abort_script "MaxMind ASN lists preprocess error" "No internet connection!"
+  fi
+
+  # Check if MaxMind domain is valid and accessible
+  if ! check_connectivity "download.maxmind.com"; then
+    # Error checking MaxMind connectivity
+    abort_script "MaxMind ASN lists preprocess error" "No connection to MaxMind!"
+  fi
+
+  # Download current ASN lists
   rm -f "${*}"
   if ! curl \
     --silent \
     "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-ASN-CSV&license_key=${maxmind_license_key}&suffix=zip" \
     --output "${*}"; then
-    # Error downloading GeoIP ASN lists
+    # Error downloading ASN lists
     rm -f "${*}"
-    echo "Aborting ${script_name}"
-    echo "  Failed to download current GeoIP ASN lists!"
-    exit 1
+    abort_script "MaxMind ASN lists download error" "Failed to download!"
   fi
 
-  # Check if successfully downloaded GeoIP ASN lists
-  if [[ ! -s "${*}" ]]; then
-    # Error empty or missing GeoIP ASN lists
+  # Check if downloaded ASN lists is not empty or missing
+  if [[ ! -f "${*}" ]]; then
+    # Error empty or missing ASN lists
     rm -f "${*}"
-    echo "Aborting ${script_name}"
-    echo "  GeoIP ASN lists from MaxMind is empty or does not exist!"
-    exit 1
+    abort_script "MaxMind ASN lists download error" "Download file does not exist!"
+  fi
+
+  # Check if downloaded ASN lists is not empty or missing
+  if [[ ! -s "${*}" ]]; then
+    # Error empty or missing ASN lists
+    rm -f "${*}"
+    abort_script "MaxMind ASN lists download error" "Download file is empty!"
+  fi
+
+  # Check if downloaded ASN lists contains a database error
+  if head -1 "${*}" | grep -q "Database edition not found"; then
+    # Error invalid MaxMind database
+    rm -f "${*}"
+    abort_script "MaxMind ASN lists download error" "Database is invalid!"
+  fi
+
+  # Check if downloaded ASN lists contains a license error
+  if head -1 "${*}" | grep -q "Invalid license key"; then
+    # Error invalid MaxMind license key
+    rm -f "${*}"
+    abort_script "MaxMind ASN lists download error" "License key is invalid!"
+  fi
+
+  # Check if downloaded ASN lists contains a suffix error
+  if head -1 "${*}" | grep -q "Invalid suffix"; then
+    # Error invalid MaxMind suffix
+    rm -f "${*}"
+    abort_script "MaxMind ASN lists download error" "Suffix is invalid!"
   fi
 }
 
 # Update entity names with correct names
 update_file() {
-  local geoip_file_name="GeoLite2-ASN-CSV"
+  # Declare local variables
+  local geoip_file_name
+
+  # Set local variables
+  geoip_file_name="GeoLite2-ASN-CSV"
 
   # Download ASN lists
   download_geoip_lists "${PWD}/${geoip_file_name}.zip"
@@ -157,13 +235,16 @@ update_file() {
 }
 
 main() {
-  local input_file="${*}"
+  # Declare local variables
+  local input_file
 
+  # Set local variables
+  input_file="${*}"
+
+  # Check for input file argument
   if [[ -z "${input_file}" ]]; then
     # Error empty or missing input file argument
-    echo "Aborting ${script_name}"
-    echo "  Input file argument is empty or does not exist!"
-    exit 1
+    abort_script "Input file argument is empty or does not exist!"
   fi
 
   format_file "${input_file}"
