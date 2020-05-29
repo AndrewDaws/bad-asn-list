@@ -19,7 +19,7 @@ abort_script() {
 format_file() {
   # Format each individual line
   rm -f "${*}-formatted"
-  while read currentLine || [ -n "$currentLine" ]; do
+  while read currentLine || [ -n "${currentLine}" ]; do
     currentASN="$(echo "${currentLine}" | grep -o -P '^[^,]+' | grep -o -P '[0-9]+')"
 
     # Check if current line contains an ASN
@@ -182,7 +182,7 @@ update_file() {
 
   # Lookup and format each individual line
   rm -f "${*}-updated"
-  while read currentLine || [ -n "$currentLine" ]; do
+  while read currentLine || [ -n "${currentLine}" ]; do
     # Find ASN
     currentASN="$( \
       echo "${currentLine}" \
