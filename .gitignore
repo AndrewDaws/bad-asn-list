@@ -5,5 +5,8 @@ maxmind.ini
 bad-asn-list.csv-formatted
 bad-asn-list.csv-cleaned
 bad-asn-list.csv-updated
+bad-isp-asn-list.csv-formatted
+bad-isp-asn-list.csv-cleaned
+bad-isp-asn-list.csv-updated
 GeoLite2-ASN-CSV.zip
 GeoLite2-ASN-CSV/
